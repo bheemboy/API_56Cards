@@ -1,0 +1,7 @@
+services:
+  api_56cards:
+    image: bheemboy/api_56cards
+    container_name: api_56cards
+    restart: unless-stopped
+    ports:
+      - 8080:8080

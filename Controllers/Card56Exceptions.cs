@@ -85,7 +85,7 @@ namespace API_56Cards.Controllers
             ErrorData.ErrorCode = errorCode;
             ErrorData.ErrorName = GetType().Name;
 
-            string StringsDir = Card56Exception.AssemblyDirectory + System.IO.Path.DirectorySeparatorChar + "locale";
+            string StringsDir = AppContext.BaseDirectory + "locale";
         	_catalog = new Catalog("strings", StringsDir, Thread.CurrentThread.CurrentCulture);
             Message = _catalog.GetString(Cards56Error.MSG[errorCode]);
 
@@ -122,16 +122,6 @@ namespace API_56Cards.Controllers
             }
         }
         private Card56Exception() { }
-        private static string? AssemblyDirectory
-        {
-            get
-            {
-                string codeBase = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                UriBuilder uri = new(codeBase);
-                string path = Uri.UnescapeDataString(uri.Path);
-                return Path.GetDirectoryName(path);
-            }
-        }
     }
     public class BiddingNotStartedException : Card56Exception
     {
