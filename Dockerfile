@@ -11,9 +11,9 @@ RUN dotnet publish API_56Cards.sln -c Release -o /webapi
 # Stage 2 ##############################################################################
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 
-EXPOSE 80
+EXPOSE 8080
 ENV TZ=America/Los_Angeles
-ENV ASPNETCORE_URLS=http://+:80
+# ENV ASPNETCORE_URLS=http://+:8080
 
 RUN apt-get update; apt-get install -y curl
 
