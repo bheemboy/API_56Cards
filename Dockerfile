@@ -1,5 +1,5 @@
 # Use the following commands to build and push
-# docker build -t bheemboy/api_56cards:latest -t bheemboy/api_56cards:2025.02.17 .
+# docker build -t bheemboy/api_56cards:latest -t bheemboy/api_56cards:2025.02.25 .
 # docker push --all-tags bheemboy/api_56cards
 
 # Stage 1 ##############################################################################
@@ -22,5 +22,4 @@ COPY --from=build /webapi .
 
 CMD ["dotnet", "/webapi/API_56Cards.dll"]
 
-# HEALTHCHECK CMD curl -f http://localhost/ || exit 1
 HEALTHCHECK CMD curl --fail http://localhost:80/health || exit

@@ -16,6 +16,6 @@ app.UseCors(builder => builder
 app.MapGet("/", () => $"API_56Cards: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
 app.MapHealthChecks("/health");
-app.MapHub<Cards56Hub>("/API_56Cards");
+app.MapHub<Cards56Hub>("/Cards56Hub");
 
 app.Run();
