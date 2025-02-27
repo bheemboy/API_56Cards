@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.SignalR;
 using API_56Cards.Models;
 using API_56Cards.Storage;
 using API_56Cards.Controllers;
+using API_56Cards.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace API_56Cards.Hubs
 {
@@ -45,6 +47,15 @@ namespace API_56Cards.Hubs
     }
     public class Cards56Hub : Hub<ICards56HubEvents>, ICards56Hub
     {
+        private readonly GameDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
+
+        public Cards56Hub(GameDbContext dbContext, IServiceScopeFactory scopeFactory)
+        {
+            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
+        }
+
         public override async Task OnConnectedAsync()
         {
             Console.WriteLine($"--> Connection Opened: {Context.ConnectionId}");
@@ -59,7 +70,7 @@ namespace API_56Cards.Hubs
                 Console.WriteLine($"--> Player disconnected: {Context.ConnectionId}, Name: '{playerLeft.Name}', Table: '{playerLeft.TableName}'");
                 if (!String.IsNullOrEmpty(playerLeft.TableName))
                 {
-                    TableController table = new TableController(GameTables.All[playerLeft.TableName], StateUpdated);
+                    TableController table = new TableController(GameTables.All[playerLeft.TableName], StateUpdated, _dbContext, _scopeFactory);
                     table.LeaveTable(playerLeft);
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, table.TableName);
                     if (table.TableEmpty) GameTables.RemoveTable(table.TableName);
@@ -130,7 +141,7 @@ namespace API_56Cards.Hubs
                         joinAttempts++;
                         try
                         {
-                            table = new TableController(GameTables.GetFreeTable(tableType, playerJoined.WatchOnly), StateUpdated);
+                            table = new TableController(GameTables.GetFreeTable(tableType, playerJoined.WatchOnly), StateUpdated, _dbContext, _scopeFactory);
                             table.JoinTable(playerJoined); // Add player to table
                             tableJoined=true;
                         }
@@ -147,12 +158,12 @@ namespace API_56Cards.Hubs
 
                     if (GameTables.All.TryGetValue(privateTableId, out GameTable? value)) // Private table by name already exists
                     {
-                        table = new TableController(value, StateUpdated);
+                        table = new TableController(value, StateUpdated, _dbContext, _scopeFactory);
                         table.JoinTable(playerJoined); // Add player to table
                     }
                     else // Let us add a new private table
                     {
-                        table = new TableController(GameTables.AddTable(tableType, privateTableId), StateUpdated);
+                        table = new TableController(GameTables.AddTable(tableType, privateTableId), StateUpdated, _dbContext, _scopeFactory);
                         table.JoinTable(playerJoined); // Add player to table
                     }
                 }
@@ -192,7 +203,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
                 
                 table.PlaceBid(player, bid);
             }
@@ -212,7 +223,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
 
                 try
                 {
@@ -248,7 +259,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
 
                 try
                 {
@@ -284,7 +295,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
 
                 table.PlayCard(player, card, roundOverDelay);
             }
@@ -303,7 +314,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
 
                 table.ShowTrump(player);
 
@@ -326,7 +337,7 @@ namespace API_56Cards.Hubs
             {
                 GetPlayersCulture();
 
-                TableController table = new TableController(GameTables.All[GetValidTablePlayer().TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[GetValidTablePlayer().TableName], StateUpdated, _dbContext, _scopeFactory);
                 table.StartNextGame(table.T.PlayerAt(table.Game.DealerPos+1)); // Deal cards and initialize bidding
             }
             catch (System.Exception e)
@@ -344,7 +355,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
                 table.SendStateUpdatedEvents(player);
             }
             catch (System.Exception e)
@@ -362,7 +373,7 @@ namespace API_56Cards.Hubs
                 GetPlayersCulture();
 
                 Player player = GetValidTablePlayer();
-                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated);
+                TableController table = new TableController(GameTables.All[player.TableName], StateUpdated, _dbContext, _scopeFactory);
                 
                 table.ForfeitGame(player);
             }
