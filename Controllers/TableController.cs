@@ -1,8 +1,6 @@
 using Newtonsoft.Json;
 using System.Runtime.InteropServices;
 using API_56Cards.Models;
-using API_56Cards.Data;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace API_56Cards.Controllers
 {
@@ -13,8 +11,6 @@ namespace API_56Cards.Controllers
         private readonly StateUpdatedDelegate StateUpdated;
 
         private readonly DeckController Deck;
-        private readonly GameDbContext _dbContext;
-        private readonly IServiceScopeFactory _scopeFactory;
         public TableType T => Game.T;
         public bool IsThani => Game.Bid?.HighBid == T.MaxBid;
         public string TableName => Game.TableName;
@@ -32,13 +28,11 @@ namespace API_56Cards.Controllers
         private string PlayerName(int posn) => Game.Chairs[posn].Occupant?.Name ?? posn.ToString();
         private List<string> CardsAt(int posn) => Game.Chairs[posn].Cards;
 
-        public TableController(GameTable gameTable, StateUpdatedDelegate stateUpdated, GameDbContext dbContext, IServiceScopeFactory scopeFactory)
+        public TableController(GameTable gameTable, StateUpdatedDelegate stateUpdated)
         {
             Game = gameTable;
             StateUpdated = stateUpdated;
             Deck = new DeckController(Game.T, Game.Deck);
-            _dbContext = dbContext;
-            _scopeFactory = scopeFactory;
         }
         public IReadOnlyList<Player> CurrentPlayers
         {
@@ -707,9 +701,6 @@ namespace API_56Cards.Controllers
 
                 // Print summary
                 PrintGameSummary();
-
-                // Save game history
-                SaveGameHistory();
             }
         }
         private void RemoveKodi(int player)
@@ -802,81 +793,6 @@ namespace API_56Cards.Controllers
             // return any remain cards players have
             Game.Chairs.ForEach(c => Deck.ReturnCards(c.Cards));
             if (!Game.TrumpExposed && Game.TrumpCard != "") Deck.ReturnCard(Game.TrumpCard);
-        }
-
-        private string GetFinalGameState()
-        {
-            var finalState = new
-            {
-                TableName = TableName,
-                GameStage = Game.Stage,
-                TrumpCard = Game.TrumpCard,
-                TrumpExposed = Game.TrumpExposed,
-                Bid = Game.Bid,
-                TeamScore = Game.TeamScore,
-                WinningTeam = Game.WinningTeam,
-                WinningScore = Game.WinningScore,
-                GameCancelled = Game.GameCancelled,
-                GameForfeited = Game.GameForfeited,
-                CoolieCount = Game.CoolieCount,
-                KodiIrakkamRound = Game.KodiIrakkamRound,
-                Players = Game.Chairs.Select(c => new {
-                    Position = c.Position,
-                    PlayerName = c.Occupant?.Name,
-                    Cards = c.Cards,
-                    KodiCount = c.KodiCount,
-                    KodiJustInstalled = c.KodiJustInstalled
-                }).ToList(),
-                Rounds = Game.Rounds?.Select(r => new {
-                    FirstPlayer = r.FirstPlayer,
-                    Winner = r.Winner,
-                    Score = r.Score,
-                    PlayedCards = r.PlayedCards,
-                    TrumpExposed = r.TrumpExposed
-                }).ToList()
-            };
-
-            return JsonConvert.SerializeObject(finalState);
-        }
-
-        private void SaveGameHistory()
-        {
-            if (Game.Stage == GameStage.GameOver)
-            {
-                // Fire and forget with error handling and proper scoping
-                Task.Run(async () =>
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<GameDbContext>();
-                    
-                    try
-                    {
-                        var gameHistory = new GameHistory
-                        {
-                            GameDateTime = DateTime.UtcNow,
-                            TableName = TableName,
-                            WinningTeam = Game.WinningTeam,
-                            WinningScore = Game.WinningScore,
-                            GameCancelled = Game.GameCancelled,
-                            GameForfeited = Game.GameForfeited,
-                            GameState = GetFinalGameState()
-                        };
-
-                        await dbContext.GameHistories.AddAsync(gameHistory);
-                        await dbContext.SaveChangesAsync();
-                        Console.WriteLine($"--> Game history saved for table: {TableName}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"--> Failed to save game history for table {TableName}:");
-                        Console.WriteLine($"    Error: {ex.Message}");
-                        if (ex.InnerException != null)
-                        {
-                            Console.WriteLine($"    Inner Error: {ex.InnerException.Message}");
-                        }
-                    }
-                });
-            }
         }
     }
 }

@@ -1,14 +1,10 @@
 using API_56Cards.Hubs;
-using Microsoft.EntityFrameworkCore;
-using API_56Cards.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks()
     .AddCheck<SignalRHealthCheck>("signalr_health_check");
 builder.Services.AddCors();
 builder.Services.AddSignalR();
-builder.Services.AddDbContext<GameDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 app.UseCors(builder => builder
