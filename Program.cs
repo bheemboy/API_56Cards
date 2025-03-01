@@ -8,7 +8,7 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 app.UseCors(builder => builder
-    .WithOrigins("null")
+    .SetIsOriginAllowed(_ => true) // Allow any origin
     .AllowAnyHeader()
     .AllowAnyMethod()
     .AllowCredentials());
